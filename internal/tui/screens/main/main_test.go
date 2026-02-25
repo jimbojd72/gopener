@@ -1,11 +1,19 @@
 package mainscreen
 
 import (
+	"os"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/jimbo/gopener/internal/config"
 )
+
+func TestMain(m *testing.M) {
+	dir, _ := os.MkdirTemp("", "gopener-main-test-*")
+	defer os.RemoveAll(dir)
+	os.Setenv("XDG_CONFIG_HOME", dir)
+	os.Exit(m.Run())
+}
 
 // noopLauncher satisfies launcher.Launcher for tests.
 type noopLauncher struct{ called bool }
