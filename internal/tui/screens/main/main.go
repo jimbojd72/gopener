@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/jimbo/gopener/internal/config"
@@ -16,8 +17,9 @@ import (
 type screenMode int
 
 const (
-	modeList   screenMode = iota
-	modeAssign            // profile assignment overlay
+	modeList      screenMode = iota
+	modeAssign               // profile assignment overlay
+	modeChangeSrc            // inline src dir edit
 )
 
 // GoProfilesMsg switches to the profiles screen.
@@ -35,13 +37,20 @@ type Model struct {
 	assignDirIdx  int
 	assignCursor  int
 	assignToggled map[string]bool
-	statusMsg     string
+	// change src mode state
+	srcInput  textinput.Model
+	statusMsg string
 }
 
 func New(cfg *config.Config, l launcher.Launcher) Model {
+	ti := textinput.New()
+	ti.Placeholder = "/home/user/src"
+	ti.CharLimit = 256
+	ti.Width = 50
 	return Model{
 		cfg:      cfg,
 		launcher: l,
+		srcInput: ti,
 	}
 }
 
@@ -53,6 +62,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m.updateList(msg)
 	case modeAssign:
 		return m.updateAssign(msg)
+	case modeChangeSrc:
+		return m.updateChangeSrc(msg)
 	}
 	return m, nil
 }
@@ -94,6 +105,11 @@ func (m Model) updateList(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keys.Main.Start):
 			err := m.launcher.Launch(m.cfg.Directories, m.cfg.Profiles)
 			return m, func() tea.Msg { return StartedMsg{Err: err} }
+		case key.Matches(msg, keys.Main.ChangeSrc):
+			m.srcInput.SetValue(m.cfg.SrcDir)
+			m.srcInput.Focus()
+			m.mode = modeChangeSrc
+			return m, textinput.Blink
 		}
 	case StartedMsg:
 		if msg.Err != nil {
@@ -152,10 +168,44 @@ func (m Model) updateAssign(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) updateChangeSrc(msg tea.Msg) (Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEsc:
+			m.srcInput.Blur()
+			m.mode = modeList
+			return m, nil
+		case tea.KeyEnter:
+			val := strings.TrimSpace(m.srcInput.Value())
+			if val == "" {
+				return m, nil
+			}
+			m.cfg.SrcDir = val
+			dirs, err := scanner.Scan(val, m.cfg.Directories)
+			if err != nil {
+				m.statusMsg = fmt.Sprintf("scan error: %v", err)
+			} else {
+				m.cfg.Directories = dirs
+				m.statusMsg = fmt.Sprintf("src changed, %d dirs", len(dirs))
+			}
+			_ = m.cfg.Save()
+			m.srcInput.Blur()
+			m.mode = modeList
+			return m, nil
+		}
+	}
+	var cmd tea.Cmd
+	m.srcInput, cmd = m.srcInput.Update(msg)
+	return m, cmd
+}
+
 func (m Model) View() string {
 	switch m.mode {
 	case modeAssign:
 		return m.viewAssign()
+	case modeChangeSrc:
+		return m.viewChangeSrc()
 	default:
 		return m.viewList()
 	}
@@ -205,10 +255,16 @@ func (m Model) viewList() string {
 	}
 
 	help := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-		"\n  space toggle  enter assign  p profiles  s start  r rescan  q quit",
+		"\n  space toggle  enter assign  p profiles  s start  r rescan  C change src  q quit",
 	)
 	sb.WriteString(help)
 	return sb.String()
+}
+
+func (m Model) viewChangeSrc() string {
+	title := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("205")).Render("Change source directory")
+	help := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("  enter confirm  esc cancel")
+	return strings.Join([]string{title, "", "  " + m.srcInput.View(), "", help}, "\n")
 }
 
 func (m Model) viewAssign() string {

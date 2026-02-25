@@ -137,10 +137,66 @@ func TestAssignEsc(t *testing.T) {
 	}
 }
 
+func TestChangeSrcEnterMode(t *testing.T) {
+	m := New(makeCfg(), &noopLauncher{})
+
+	// Press Shift+C (capital C) to enter change-src mode.
+	m, _ = pressRune(m, 'C')
+	if m.mode != modeChangeSrc {
+		t.Fatalf("expected modeChangeSrc, got %v", m.mode)
+	}
+	// Input should be pre-filled with current src dir.
+	if m.srcInput.Value() != "/tmp/src" {
+		t.Errorf("srcInput value: got %q, want %q", m.srcInput.Value(), "/tmp/src")
+	}
+}
+
+func TestChangeSrcEsc(t *testing.T) {
+	m := New(makeCfg(), &noopLauncher{})
+	m, _ = pressRune(m, 'C')
+
+	m, _ = pressKey(m, tea.KeyEsc)
+	if m.mode != modeList {
+		t.Errorf("after esc: expected modeList, got %v", m.mode)
+	}
+	// Src dir unchanged.
+	if m.cfg.SrcDir != "/tmp/src" {
+		t.Errorf("src dir should be unchanged, got %q", m.cfg.SrcDir)
+	}
+}
+
+func TestChangeSrcConfirm(t *testing.T) {
+	dir := t.TempDir()
+	c := makeCfg()
+	c.SrcDir = dir
+	m := New(c, &noopLauncher{})
+	m, _ = pressRune(m, 'C')
+
+	// Clear input and type a new path (the temp dir itself).
+	m.srcInput.SetValue(dir)
+	m, _ = pressKey(m, tea.KeyEnter)
+
+	if m.mode != modeList {
+		t.Errorf("after enter: expected modeList, got %v", m.mode)
+	}
+	if m.cfg.SrcDir != dir {
+		t.Errorf("SrcDir: got %q, want %q", m.cfg.SrcDir, dir)
+	}
+}
+
 func TestViewRendersWithoutPanic(t *testing.T) {
 	m := New(makeCfg(), &noopLauncher{})
 	v := m.View()
 	if v == "" {
 		t.Error("expected non-empty view")
+	}
+}
+
+func TestChangeSrcViewRendersWithoutPanic(t *testing.T) {
+	m := New(makeCfg(), &noopLauncher{})
+	m, _ = pressRune(m, 'C')
+	v := m.View()
+	if v == "" {
+		t.Error("expected non-empty view in modeChangeSrc")
 	}
 }
