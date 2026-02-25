@@ -26,11 +26,15 @@ type Config struct {
 }
 
 func configPath() (string, error) {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		var err error
+		base, err = os.UserConfigDir()
+		if err != nil {
+			return "", err
+		}
 	}
-	return filepath.Join(dir, "gopener", "config.json"), nil
+	return filepath.Join(base, "gopener", "config.json"), nil
 }
 
 func Load() (*Config, error) {
