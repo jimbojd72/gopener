@@ -53,7 +53,9 @@ func (l *darwinLauncher) Launch(dirs []config.DirConfig, profiles []config.Profi
 			switch terminal {
 			case "Ghostty":
 				// Ghostty on macOS: Use the binary from the app bundle
-				// Note: Ghostty doesn't support opening windows in existing instance via CLI
+				// LIMITATION: Ghostty currently creates separate windows/dock entries
+				// for each launch. There's no API to open tabs in an existing instance.
+				// Recommendation: Use iTerm or Terminal.app for single-instance behavior.
 				shellCmd := fmt.Sprintf("cd \"%s\" && exec %s", escapedPath, escapedCmd)
 				ghosttyBinary := "/Applications/Ghostty.app/Contents/MacOS/ghostty"
 				cmd = exec.Command(ghosttyBinary, "-e", "sh", "-c", shellCmd)
