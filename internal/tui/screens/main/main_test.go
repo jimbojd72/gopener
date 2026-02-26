@@ -164,8 +164,8 @@ func TestAssignEsc(t *testing.T) {
 func TestChangeSrcEnterMode(t *testing.T) {
 	m := New(makeCfg(), &noopLauncher{})
 
-	// Press Shift+C (capital C) to enter change-src mode.
-	m, _ = pressRune(m, 'C')
+	// Press 'c' to enter change-src mode.
+	m, _ = pressRune(m, 'c')
 	if m.mode != modeChangeSrc {
 		t.Fatalf("expected modeChangeSrc, got %v", m.mode)
 	}
@@ -177,7 +177,7 @@ func TestChangeSrcEnterMode(t *testing.T) {
 
 func TestChangeSrcEsc(t *testing.T) {
 	m := New(makeCfg(), &noopLauncher{})
-	m, _ = pressRune(m, 'C')
+	m, _ = pressRune(m, 'c')
 
 	m, _ = pressKey(m, tea.KeyEsc)
 	if m.mode != modeList {
@@ -194,7 +194,7 @@ func TestChangeSrcConfirm(t *testing.T) {
 	c := makeCfg()
 	c.SrcDir = dir
 	m := New(c, &noopLauncher{})
-	m, _ = pressRune(m, 'C')
+	m, _ = pressRune(m, 'c')
 
 	// Clear input and type a new path (the temp dir itself).
 	m.srcInput.SetValue(dir)
@@ -218,7 +218,7 @@ func TestViewRendersWithoutPanic(t *testing.T) {
 
 func TestChangeSrcViewRendersWithoutPanic(t *testing.T) {
 	m := New(makeCfg(), &noopLauncher{})
-	m, _ = pressRune(m, 'C')
+	m, _ = pressRune(m, 'c')
 	v := m.View()
 	if v == "" {
 		t.Error("expected non-empty view in modeChangeSrc")
