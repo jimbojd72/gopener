@@ -53,8 +53,9 @@ func (l *darwinLauncher) Launch(dirs []config.DirConfig, profiles []config.Profi
 			switch terminal {
 			case "Ghostty":
 				// Ghostty on macOS needs to use 'open' command with -e flag
+				// Use -a instead of -na to open in existing instance
 				shellCmd := fmt.Sprintf("cd \"%s\" && %s", escapedPath, escapedCmd)
-				cmd = exec.Command("open", "-na", "Ghostty.app", "--args", "-e", "sh", "-c", shellCmd)
+				cmd = exec.Command("open", "-a", "Ghostty.app", "--args", "-e", "sh", "-c", shellCmd)
 			case "iTerm":
 				// iTerm2 has a different AppleScript API
 				script := fmt.Sprintf(
