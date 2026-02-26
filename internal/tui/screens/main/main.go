@@ -330,7 +330,7 @@ func (m Model) viewList() string {
 	}
 
 	help := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-		"\n  space toggle  enter assign  p profiles  t settings  s start  r rescan  C change src  q quit",
+		"\n  space toggle  enter assign  p profiles  t settings  s start  r rescan  c change src  q quit",
 	)
 	sb.WriteString(help)
 	return sb.String()

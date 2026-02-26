@@ -39,7 +39,7 @@ var Main = MainKeys{
 	Settings:  key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "settings")),
 	Start:     key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "start")),
 	Rescan:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "rescan")),
-	ChangeSrc: key.NewBinding(key.WithKeys("C"), key.WithHelp("C", "change src dir")),
+	ChangeSrc: key.NewBinding(key.WithKeys("c"), key.WithHelp("c", "change src dir")),
 	Quit:      key.NewBinding(key.WithKeys("q", "ctrl+c"), key.WithHelp("q", "quit")),
 }
 
