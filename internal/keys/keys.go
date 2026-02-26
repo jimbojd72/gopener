@@ -21,6 +21,7 @@ type MainKeys struct {
 	Toggle    key.Binding
 	Assign    key.Binding
 	Profiles  key.Binding
+	Settings  key.Binding
 	Start     key.Binding
 	Rescan    key.Binding
 	ChangeSrc key.Binding
@@ -35,6 +36,7 @@ var Main = MainKeys{
 	Toggle:    key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "toggle")),
 	Assign:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "assign profiles")),
 	Profiles:  key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "profiles")),
+	Settings:  key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "settings")),
 	Start:     key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "start")),
 	Rescan:    key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "rescan")),
 	ChangeSrc: key.NewBinding(key.WithKeys("C"), key.WithHelp("C", "change src dir")),
@@ -73,4 +75,18 @@ var Assign = AssignKeys{
 	Toggle:  key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "toggle")),
 	Confirm: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm")),
 	Back:    key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+}
+
+type SettingsKeys struct {
+	Up     key.Binding
+	Down   key.Binding
+	Select key.Binding
+	Back   key.Binding
+}
+
+var Settings = SettingsKeys{
+	Up:     key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
+	Down:   key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
+	Select: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+	Back:   key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
 }

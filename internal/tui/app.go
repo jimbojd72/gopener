@@ -7,6 +7,7 @@ import (
 	"github.com/jimbo/gopener/internal/scanner"
 	mainscreen "github.com/jimbo/gopener/internal/tui/screens/main"
 	"github.com/jimbo/gopener/internal/tui/screens/profiles"
+	"github.com/jimbo/gopener/internal/tui/screens/settings"
 	"github.com/jimbo/gopener/internal/tui/screens/setup"
 )
 
@@ -16,6 +17,7 @@ const (
 	screenSetup    screen = iota
 	screenMain
 	screenProfiles
+	screenSettings
 )
 
 type App struct {
@@ -25,6 +27,7 @@ type App struct {
 	setup    setup.Model
 	main     mainscreen.Model
 	profiles profiles.Model
+	settings settings.Model
 }
 
 func NewApp(cfg *config.Config, l launcher.Launcher) *App {
@@ -44,6 +47,7 @@ func NewApp(cfg *config.Config, l launcher.Launcher) *App {
 	app.setup = setup.New(cfg)
 	app.main = mainscreen.New(cfg, l)
 	app.profiles = profiles.New(cfg)
+	app.settings = settings.New(cfg)
 	return app
 }
 
@@ -55,6 +59,8 @@ func (a *App) Init() tea.Cmd {
 		return a.main.Init()
 	case screenProfiles:
 		return a.profiles.Init()
+	case screenSettings:
+		return a.settings.Init()
 	}
 	return nil
 }
@@ -86,6 +92,11 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.screen = screenProfiles
 			return a, a.profiles.Init()
 		}
+		if _, ok := msg.(mainscreen.GoSettingsMsg); ok {
+			a.settings = settings.New(a.cfg)
+			a.screen = screenSettings
+			return a, a.settings.Init()
+		}
 		return a, cmd
 
 	case screenProfiles:
@@ -93,6 +104,17 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.profiles = updated
 		if _, ok := msg.(profiles.BackMsg); ok {
 			// Refresh main screen in case profiles changed.
+			a.main = mainscreen.New(a.cfg, a.launcher)
+			a.screen = screenMain
+			return a, a.main.Init()
+		}
+		return a, cmd
+
+	case screenSettings:
+		updated, cmd := a.settings.Update(msg)
+		a.settings = updated
+		if _, ok := msg.(settings.GoBackMsg); ok {
+			// Refresh main screen in case settings changed.
 			a.main = mainscreen.New(a.cfg, a.launcher)
 			a.screen = screenMain
 			return a, a.main.Init()
@@ -110,6 +132,8 @@ func (a *App) View() string {
 		return a.main.View()
 	case screenProfiles:
 		return a.profiles.View()
+	case screenSettings:
+		return a.settings.View()
 	}
 	return ""
 }

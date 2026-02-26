@@ -25,6 +25,9 @@ const (
 // GoProfilesMsg switches to the profiles screen.
 type GoProfilesMsg struct{}
 
+// GoSettingsMsg switches to the settings screen.
+type GoSettingsMsg struct{}
+
 // StartedMsg is sent after launching.
 type StartedMsg struct{ Err error }
 
@@ -118,6 +121,8 @@ func (m Model) updateList(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		case key.Matches(msg, keys.Main.Profiles):
 			return m, func() tea.Msg { return GoProfilesMsg{} }
+		case key.Matches(msg, keys.Main.Settings):
+			return m, func() tea.Msg { return GoSettingsMsg{} }
 		case key.Matches(msg, keys.Main.Rescan):
 			dirs, err := scanner.Scan(m.cfg.SrcDir, m.cfg.Directories)
 			if err != nil {
@@ -325,7 +330,7 @@ func (m Model) viewList() string {
 	}
 
 	help := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-		"\n  space toggle  enter assign  p profiles  s start  r rescan  C change src  pgup/pgdn page  q quit",
+		"\n  space toggle  enter assign  p profiles  t settings  s start  r rescan  C change src  q quit",
 	)
 	sb.WriteString(help)
 	return sb.String()
