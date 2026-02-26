@@ -307,3 +307,64 @@ func TestScrollOffsetClampsToMax(t *testing.T) {
 		t.Errorf("scrollOffset: got %d, want 0 (all items fit)", m.scrollOffset)
 	}
 }
+
+func TestPageDown(t *testing.T) {
+	const totalDirs = 30
+	m := New(makeLargeCfg(totalDirs), &noopLauncher{})
+	m = sendWindowSize(m, 10) // visibleRows = 5
+
+	visible := m.visibleRows()
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	if m.cursor != visible {
+		t.Errorf("after pgdown: cursor=%d, want %d", m.cursor, visible)
+	}
+	if m.cursor < m.scrollOffset || m.cursor >= m.scrollOffset+visible {
+		t.Errorf("cursor %d out of visible window [%d, %d)", m.cursor, m.scrollOffset, m.scrollOffset+visible)
+	}
+}
+
+func TestPageDownClampsAtEnd(t *testing.T) {
+	const totalDirs = 8
+	m := New(makeLargeCfg(totalDirs), &noopLauncher{})
+	m = sendWindowSize(m, 10) // visibleRows = 5
+
+	// Two page-downs should land at the last item, not past it.
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	if m.cursor != totalDirs-1 {
+		t.Errorf("after two pgdown: cursor=%d, want %d", m.cursor, totalDirs-1)
+	}
+}
+
+func TestPageUp(t *testing.T) {
+	const totalDirs = 30
+	m := New(makeLargeCfg(totalDirs), &noopLauncher{})
+	m = sendWindowSize(m, 10) // visibleRows = 5
+
+	visible := m.visibleRows()
+	// Go down two pages first.
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgDown})
+	// Page up once should subtract visibleRows from cursor.
+	before := m.cursor
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
+	want := before - visible
+	if m.cursor != want {
+		t.Errorf("after pgup: cursor=%d, want %d", m.cursor, want)
+	}
+}
+
+func TestPageUpClampsAtTop(t *testing.T) {
+	const totalDirs = 10
+	m := New(makeLargeCfg(totalDirs), &noopLauncher{})
+	m = sendWindowSize(m, 10) // visibleRows = 5
+
+	// Page up from the top should stay at 0.
+	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyPgUp})
+	if m.cursor != 0 {
+		t.Errorf("after pgup at top: cursor=%d, want 0", m.cursor)
+	}
+	if m.scrollOffset != 0 {
+		t.Errorf("after pgup at top: scrollOffset=%d, want 0", m.scrollOffset)
+	}
+}

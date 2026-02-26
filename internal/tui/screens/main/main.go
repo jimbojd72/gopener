@@ -95,6 +95,18 @@ func (m Model) updateList(msg tea.Msg) (Model, tea.Cmd) {
 				m.cursor++
 				m.clampScroll()
 			}
+		case key.Matches(msg, keys.Main.PageUp):
+			m.cursor -= m.visibleRows()
+			if m.cursor < 0 {
+				m.cursor = 0
+			}
+			m.clampScroll()
+		case key.Matches(msg, keys.Main.PageDown):
+			m.cursor += m.visibleRows()
+			if m.cursor > len(m.cfg.Directories)-1 {
+				m.cursor = len(m.cfg.Directories) - 1
+			}
+			m.clampScroll()
 		case key.Matches(msg, keys.Main.Toggle):
 			if len(m.cfg.Directories) > 0 {
 				m.cfg.Directories[m.cursor].Enabled = !m.cfg.Directories[m.cursor].Enabled
@@ -313,7 +325,7 @@ func (m Model) viewList() string {
 	}
 
 	help := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-		"\n  space toggle  enter assign  p profiles  s start  r rescan  C change src  q quit",
+		"\n  space toggle  enter assign  p profiles  s start  r rescan  C change src  pgup/pgdn page  q quit",
 	)
 	sb.WriteString(help)
 	return sb.String()
