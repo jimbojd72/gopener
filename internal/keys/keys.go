@@ -16,6 +16,8 @@ var Global = GlobalKeys{
 type MainKeys struct {
 	Up        key.Binding
 	Down      key.Binding
+	PageUp    key.Binding
+	PageDown  key.Binding
 	Toggle    key.Binding
 	Assign    key.Binding
 	Profiles  key.Binding
@@ -28,6 +30,8 @@ type MainKeys struct {
 var Main = MainKeys{
 	Up:        key.NewBinding(key.WithKeys("up", "k"), key.WithHelp("↑/k", "up")),
 	Down:      key.NewBinding(key.WithKeys("down", "j"), key.WithHelp("↓/j", "down")),
+	PageUp:    key.NewBinding(key.WithKeys("pgup"), key.WithHelp("pgup", "page up")),
+	PageDown:  key.NewBinding(key.WithKeys("pgdown"), key.WithHelp("pgdn", "page down")),
 	Toggle:    key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "toggle")),
 	Assign:    key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "assign profiles")),
 	Profiles:  key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "profiles")),
