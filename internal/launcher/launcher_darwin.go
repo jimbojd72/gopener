@@ -49,19 +49,15 @@ func (l *darwinLauncher) Launch(dirs []config.DirConfig, profiles []config.Profi
 			escapedPath := escapeAppleScript(dir.Path)
 			escapedCmd := escapeAppleScript(p.Cmd)
 
-			var script string
+			var cmd *exec.Cmd
 			switch terminal {
 			case "Ghostty":
-				// Ghostty uses similar AppleScript API to Terminal
-				script = fmt.Sprintf(
-					`tell application "Ghostty"
-						do script "cd \"%s\" && %s"
-					end tell`,
-					escapedPath, escapedCmd,
-				)
+				// Ghostty on macOS needs to use 'open' command with -e flag
+				shellCmd := fmt.Sprintf("cd \"%s\" && %s", escapedPath, escapedCmd)
+				cmd = exec.Command("open", "-na", "Ghostty.app", "--args", "-e", "sh", "-c", shellCmd)
 			case "iTerm":
 				// iTerm2 has a different AppleScript API
-				script = fmt.Sprintf(
+				script := fmt.Sprintf(
 					`tell application "iTerm"
 						create window with default profile
 						tell current session of current window
@@ -70,9 +66,10 @@ func (l *darwinLauncher) Launch(dirs []config.DirConfig, profiles []config.Profi
 					end tell`,
 					escapedPath, escapedCmd,
 				)
+				cmd = exec.Command("osascript", "-e", script)
 			case "Warp":
-				// Warp uses similar syntax to Terminal
-				script = fmt.Sprintf(
+				// Warp uses System Events for keyboard automation
+				script := fmt.Sprintf(
 					`tell application "Warp" to activate
 					tell application "System Events"
 						tell process "Warp"
@@ -84,15 +81,16 @@ func (l *darwinLauncher) Launch(dirs []config.DirConfig, profiles []config.Profi
 					end tell`,
 					escapedPath, escapedCmd,
 				)
+				cmd = exec.Command("osascript", "-e", script)
 			default:
-				// Terminal.app and other terminals
-				script = fmt.Sprintf(
+				// Terminal.app and other terminals use standard AppleScript
+				script := fmt.Sprintf(
 					`tell application "%s" to do script "cd \"%s\" && %s"`,
 					terminal, escapedPath, escapedCmd,
 				)
+				cmd = exec.Command("osascript", "-e", script)
 			}
 
-			cmd := exec.Command("osascript", "-e", script)
 			if err := cmd.Start(); err != nil {
 				return fmt.Errorf("launching %s for %s: %w", p.Label, dir.Name, err)
 			}
