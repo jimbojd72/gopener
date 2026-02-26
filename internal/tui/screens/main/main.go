@@ -28,6 +28,9 @@ type GoProfilesMsg struct{}
 // StartedMsg is sent after launching.
 type StartedMsg struct{ Err error }
 
+// reservedLines is the number of lines used by the header, footer, and margins.
+const reservedLines = 5
+
 type Model struct {
 	cfg      *config.Config
 	launcher launcher.Launcher
@@ -40,6 +43,9 @@ type Model struct {
 	// change src mode state
 	srcInput  textinput.Model
 	statusMsg string
+	// scroll state
+	height       int
+	scrollOffset int
 }
 
 func New(cfg *config.Config, l launcher.Launcher) Model {
@@ -51,12 +57,17 @@ func New(cfg *config.Config, l launcher.Launcher) Model {
 		cfg:      cfg,
 		launcher: l,
 		srcInput: ti,
+		height:   24,
 	}
 }
 
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+	if wm, ok := msg.(tea.WindowSizeMsg); ok {
+		m.height = wm.Height
+		m.clampScroll()
+	}
 	switch m.mode {
 	case modeList:
 		return m.updateList(msg)
@@ -77,10 +88,12 @@ func (m Model) updateList(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, keys.Main.Up):
 			if m.cursor > 0 {
 				m.cursor--
+				m.clampScroll()
 			}
 		case key.Matches(msg, keys.Main.Down):
 			if m.cursor < len(m.cfg.Directories)-1 {
 				m.cursor++
+				m.clampScroll()
 			}
 		case key.Matches(msg, keys.Main.Toggle):
 			if len(m.cfg.Directories) > 0 {
@@ -101,6 +114,13 @@ func (m Model) updateList(msg tea.Msg) (Model, tea.Cmd) {
 				m.cfg.Directories = dirs
 				_ = m.cfg.Save()
 				m.statusMsg = fmt.Sprintf("rescanned: %d dirs", len(dirs))
+				if m.cursor >= len(dirs) {
+					m.cursor = len(dirs) - 1
+				}
+				if m.cursor < 0 {
+					m.cursor = 0
+				}
+				m.clampScroll()
 			}
 		case key.Matches(msg, keys.Main.Start):
 			err := m.launcher.Launch(m.cfg.Directories, m.cfg.Profiles)
@@ -119,6 +139,36 @@ func (m Model) updateList(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// visibleRows returns the number of directory rows that can be shown on screen.
+func (m Model) visibleRows() int {
+	rows := m.height - reservedLines
+	if rows < 3 {
+		rows = 3
+	}
+	return rows
+}
+
+// clampScroll adjusts scrollOffset so the cursor stays within the visible window.
+func (m *Model) clampScroll() {
+	visible := m.visibleRows()
+	if m.cursor < m.scrollOffset {
+		m.scrollOffset = m.cursor
+	}
+	if m.cursor >= m.scrollOffset+visible {
+		m.scrollOffset = m.cursor - visible + 1
+	}
+	maxOffset := len(m.cfg.Directories) - visible
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if m.scrollOffset > maxOffset {
+		m.scrollOffset = maxOffset
+	}
+	if m.scrollOffset < 0 {
+		m.scrollOffset = 0
+	}
 }
 
 func (m *Model) enterAssign(dirIdx int) {
@@ -222,7 +272,15 @@ func (m Model) viewList() string {
 		sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("  (no directories — press r to scan)") + "\n")
 	}
 
-	for i, d := range m.cfg.Directories {
+	visible := m.visibleRows()
+	start := m.scrollOffset
+	end := start + visible
+	if end > len(m.cfg.Directories) {
+		end = len(m.cfg.Directories)
+	}
+
+	for i := start; i < end; i++ {
+		d := m.cfg.Directories[i]
 		check := "[ ]"
 		if d.Enabled {
 			check = lipgloss.NewStyle().Foreground(lipgloss.Color("46")).Render("[x]")

@@ -1,7 +1,9 @@
 package mainscreen
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -46,6 +48,20 @@ func pressRune(m Model, r rune) (Model, tea.Cmd) {
 	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}}
 	updated, cmd := m.Update(msg)
 	return updated, cmd
+}
+
+// makeLargeCfg creates a config with more directories than the default visible rows.
+func makeLargeCfg(n int) *config.Config {
+	dirs := make([]config.DirConfig, n)
+	for i := range dirs {
+		dirs[i] = config.DirConfig{Path: fmt.Sprintf("/tmp/src/dir%02d", i), Name: fmt.Sprintf("dir%02d", i)}
+	}
+	return &config.Config{SrcDir: "/tmp/src", Directories: dirs}
+}
+
+func sendWindowSize(m Model, h int) Model {
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 80, Height: h})
+	return m
 }
 
 func TestInitialCursor(t *testing.T) {
@@ -206,5 +222,88 @@ func TestChangeSrcViewRendersWithoutPanic(t *testing.T) {
 	v := m.View()
 	if v == "" {
 		t.Error("expected non-empty view in modeChangeSrc")
+	}
+}
+
+func TestWindowSizeSetsHeight(t *testing.T) {
+	m := New(makeLargeCfg(10), &noopLauncher{})
+	m = sendWindowSize(m, 20)
+	if m.height != 20 {
+		t.Errorf("height: got %d, want 20", m.height)
+	}
+}
+
+func TestScrollOffsetFollowsCursorDown(t *testing.T) {
+	const totalDirs = 30
+	m := New(makeLargeCfg(totalDirs), &noopLauncher{})
+	m = sendWindowSize(m, 10) // visibleRows = 10 - 5 = 5
+
+	visible := m.visibleRows()
+	// Navigate past the visible window.
+	for i := 0; i < visible; i++ {
+		m, _ = pressKey(m, tea.KeyDown)
+	}
+	if m.cursor != visible {
+		t.Errorf("cursor: got %d, want %d", m.cursor, visible)
+	}
+	// scrollOffset should have advanced to keep cursor in view.
+	if m.scrollOffset == 0 {
+		t.Error("scrollOffset should be > 0 after scrolling past window")
+	}
+	if m.cursor < m.scrollOffset || m.cursor >= m.scrollOffset+visible {
+		t.Errorf("cursor %d out of visible window [%d, %d)", m.cursor, m.scrollOffset, m.scrollOffset+visible)
+	}
+}
+
+func TestScrollOffsetFollowsCursorUp(t *testing.T) {
+	const totalDirs = 30
+	m := New(makeLargeCfg(totalDirs), &noopLauncher{})
+	m = sendWindowSize(m, 10) // visibleRows = 5
+
+	visible := m.visibleRows()
+	// Go down far enough to scroll.
+	for i := 0; i < visible+2; i++ {
+		m, _ = pressKey(m, tea.KeyDown)
+	}
+	// Now navigate back up.
+	for i := 0; i < visible+2; i++ {
+		m, _ = pressKey(m, tea.KeyUp)
+	}
+	if m.cursor != 0 {
+		t.Errorf("cursor after scrolling back: got %d, want 0", m.cursor)
+	}
+	if m.scrollOffset != 0 {
+		t.Errorf("scrollOffset after scrolling back to top: got %d, want 0", m.scrollOffset)
+	}
+}
+
+func TestViewOnlyRendersVisibleItems(t *testing.T) {
+	const totalDirs = 30
+	m := New(makeLargeCfg(totalDirs), &noopLauncher{})
+	m = sendWindowSize(m, 10) // visibleRows = 5
+
+	view := m.viewList()
+	// Only the first 5 directories should appear.
+	if !strings.Contains(view, "dir00") {
+		t.Error("view should contain dir00")
+	}
+	// dir10 should not be visible at scrollOffset=0.
+	if strings.Contains(view, "dir10") {
+		t.Error("view should not contain dir10 when scrollOffset=0")
+	}
+}
+
+func TestScrollOffsetClampsToMax(t *testing.T) {
+	const totalDirs = 5
+	m := New(makeLargeCfg(totalDirs), &noopLauncher{})
+	m = sendWindowSize(m, 10) // visibleRows = 5, same as totalDirs
+
+	// Navigate to the last item.
+	for i := 0; i < totalDirs-1; i++ {
+		m, _ = pressKey(m, tea.KeyDown)
+	}
+	// scrollOffset should stay at 0 when all items fit.
+	if m.scrollOffset != 0 {
+		t.Errorf("scrollOffset: got %d, want 0 (all items fit)", m.scrollOffset)
 	}
 }
