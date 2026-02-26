@@ -135,7 +135,7 @@ func (m Model) updateList(msg tea.Msg) (Model, tea.Cmd) {
 				m.clampScroll()
 			}
 		case key.Matches(msg, keys.Main.Start):
-			err := m.launcher.Launch(m.cfg.Directories, m.cfg.Profiles)
+			err := m.launcher.Launch(m.cfg.Directories, m.cfg.Profiles, m.cfg.Terminal)
 			return m, func() tea.Msg { return StartedMsg{Err: err} }
 		case key.Matches(msg, keys.Main.ChangeSrc):
 			m.srcInput.SetValue(m.cfg.SrcDir)

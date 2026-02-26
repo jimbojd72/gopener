@@ -24,7 +24,12 @@ func escapeAppleScript(s string) string {
 	return s
 }
 
-func (l *darwinLauncher) Launch(dirs []config.DirConfig, profiles []config.Profile) error {
+func (l *darwinLauncher) Launch(dirs []config.DirConfig, profiles []config.Profile, terminal string) error {
+	// Default to Terminal.app if not specified
+	if terminal == "" {
+		terminal = "Terminal"
+	}
+
 	// Build profile map for quick lookup.
 	profileMap := make(map[string]config.Profile, len(profiles))
 	for _, p := range profiles {
@@ -43,10 +48,50 @@ func (l *darwinLauncher) Launch(dirs []config.DirConfig, profiles []config.Profi
 			// Escape the path and command for AppleScript
 			escapedPath := escapeAppleScript(dir.Path)
 			escapedCmd := escapeAppleScript(p.Cmd)
-			script := fmt.Sprintf(
-				`tell application "Terminal" to do script "cd \"%s\" && %s"`,
-				escapedPath, escapedCmd,
-			)
+
+			var script string
+			switch terminal {
+			case "Ghostty":
+				// Ghostty uses similar AppleScript API to Terminal
+				script = fmt.Sprintf(
+					`tell application "Ghostty"
+						do script "cd \"%s\" && %s"
+					end tell`,
+					escapedPath, escapedCmd,
+				)
+			case "iTerm":
+				// iTerm2 has a different AppleScript API
+				script = fmt.Sprintf(
+					`tell application "iTerm"
+						create window with default profile
+						tell current session of current window
+							write text "cd \"%s\" && %s"
+						end tell
+					end tell`,
+					escapedPath, escapedCmd,
+				)
+			case "Warp":
+				// Warp uses similar syntax to Terminal
+				script = fmt.Sprintf(
+					`tell application "Warp" to activate
+					tell application "System Events"
+						tell process "Warp"
+							keystroke "t" using {command down}
+							delay 0.5
+							keystroke "cd \"%s\" && %s"
+							keystroke return
+						end tell
+					end tell`,
+					escapedPath, escapedCmd,
+				)
+			default:
+				// Terminal.app and other terminals
+				script = fmt.Sprintf(
+					`tell application "%s" to do script "cd \"%s\" && %s"`,
+					terminal, escapedPath, escapedCmd,
+				)
+			}
+
 			cmd := exec.Command("osascript", "-e", script)
 			if err := cmd.Start(); err != nil {
 				return fmt.Errorf("launching %s for %s: %w", p.Label, dir.Name, err)

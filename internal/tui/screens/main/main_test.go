@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 // noopLauncher satisfies launcher.Launcher for tests.
 type noopLauncher struct{ called bool }
 
-func (n *noopLauncher) Launch(dirs []config.DirConfig, profiles []config.Profile) error {
+func (n *noopLauncher) Launch(dirs []config.DirConfig, profiles []config.Profile, terminal string) error {
 	n.called = true
 	return nil
 }

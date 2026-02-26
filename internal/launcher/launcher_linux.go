@@ -16,8 +16,11 @@ func New() Launcher {
 	return &linuxLauncher{}
 }
 
-func (l *linuxLauncher) Launch(dirs []config.DirConfig, profiles []config.Profile) error {
-	term := detectTerminal()
+func (l *linuxLauncher) Launch(dirs []config.DirConfig, profiles []config.Profile, terminal string) error {
+	term := terminal
+	if term == "" {
+		term = detectTerminal()
+	}
 	if term == "" {
 		return fmt.Errorf("no supported terminal emulator found")
 	}

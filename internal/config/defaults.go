@@ -10,7 +10,8 @@ import (
 // Default returns a Config pre-populated with default profiles and src dir.
 func Default() *Config {
 	return &Config{
-		SrcDir: defaultSrcDir(),
+		SrcDir:   defaultSrcDir(),
+		Terminal: DetectTerminal(),
 		Profiles: []Profile{
 			{ID: newID(), Label: "Claude", Cmd: "claude --continue"},
 			{ID: newID(), Label: "Claude YOLO", Cmd: "claude --continue --dangerously-skip-permissions"},

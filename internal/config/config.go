@@ -21,6 +21,7 @@ type DirConfig struct {
 
 type Config struct {
 	SrcDir      string      `json:"src_dir"`
+	Terminal    string      `json:"terminal"`     // Terminal emulator to use (e.g., "Terminal", "iTerm", "Warp")
 	Profiles    []Profile   `json:"profiles"`
 	Directories []DirConfig `json:"directories"`
 }
